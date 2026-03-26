@@ -12,6 +12,13 @@ import string
 # ── App Setup ─────────────────────────────────────────
 
 app = FastAPI(title="Hushh Vault API")
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get("/")
+def home():
+    return {"message": "Hushh Vault is running 🚀"}
 
 app.add_middleware(
     CORSMiddleware,
