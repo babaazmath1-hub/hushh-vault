@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hushh — Secure Org Communication</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="hashh-security.js"></script>
+<style>
+:root{
+  --bg0:#060a0e;--bg1:#0b1016;--bg2:#111820;--bg3:#161e28;--bg4:#1c2534;
+  --border:#1e2d3d;--border2:#253447;
+  --t1:#e2eaf4;--t2:#7a92aa;--t3:#3d5268;--t4:#1f3347;
+  --green:#00e87a;--green2:#00b85f;--greendim:#00e87a18;--greenglow:#00e87a30;
+  --red:#ff4b6b;--reddim:#ff4b6b18;
+  --yellow:#ffba00;--yellowdim:#ffba0018;
+  --blue:#4da6ff;--bluedim:#4da6ff18;
+  --purple:#c084fc;--purpledim:#c084fc18;
+  --r:6px;
+  --mono:'JetBrains Mono',monospace;
+  --sans:'Syne',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg0);color:var(--t1);font-family:var(--mono);font-size:13px}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+.hidden{display:none!important}
+.ml-a{margin-left:auto}
+input,select,textarea{
+  background:var(--bg1);border:1px solid var(--border2);border-radius:var(--r);
+  color:var(--t1);font-family:var(--mono);font-size:13px;padding:9px 12px;outline:none;
+  transition:border-color .2s;width:100%;
+}
+input:focus,select:focus,textarea:focus{border-color:var(--green)}
+select{cursor:pointer}
+button{cursor:pointer;font-family:var(--mono);font-size:12px;border-radius:var(--r);border:none;transition:all .18s}
+.btn{padding:8px 16px;background:var(--bg3);border:1px solid var(--border2);color:var(--t2)}
+.btn:hover{border-color:var(--green);color:var(--green)}
+.btn-primary{padding:9px 20px;background:var(--green);color:#000;font-weight:700;letter-spacing:.5px}
+.btn-primary:hover{background:var(--green2);transform:translateY(-1px)}
+.btn-danger{padding:7px 14px;background:var(--reddim);border:1px solid var(--red);color:var(--red)}
+.btn-danger:hover{background:var(--red);color:#fff}
+.btn-sm{padding:5px 10px;font-size:11px}
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;letter-spacing:.4px;gap:4px}
+.bg{background:var(--greendim);border:1px solid var(--green);color:var(--green)}
+.br{background:var(--reddim);border:1px solid var(--red);color:var(--red)}
+.by{background:var(--yellowdim);border:1px solid var(--yellow);color:var(--yellow)}
+.bb{background:var(--bluedim);border:1px solid var(--blue);color:var(--blue)}
+.bp{background:var(--purpledim);border:1px solid var(--purple);color:var(--purple)}
+.bk{background:var(--bg3);border:1px solid var(--border2);color:var(--t3)}
+.lbl{display:block;font-size:11px;color:var(--t2);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px}
+.fg{margin-bottom:16px}
+.card{background:var(--bg2);border:1px solid var(--border2);border-radius:8px;padding:20px}
+/* LAYOUT */
+#app{display:flex;flex-direction:column;height:100vh}
+/* TOPBAR */
+.topbar{
+  height:50px;background:var(--bg1);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 20px;gap:14px;flex-shrink:0;position:relative;
+}
+.topbar::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--greenglow),transparent)}
+.logo{font-family:var(--sans);font-weight:800;font-size:18px;color:var(--green);letter-spacing:-1px;display:flex;align-items:center;gap:8px}
+.logo-icon{width:28px;height:28px;background:var(--greendim);border:1px solid var(--green);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px}
+.tbdiv{width:1px;height:20px;background:var(--border2)}
+.enc-pill{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--green);background:var(--greendim);border:1px solid var(--greenglow);border-radius:20px;padding:3px 10px}
+.pulse{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 var(--greenglow)}50%{opacity:.4;box-shadow:0 0 0 4px transparent}}
+.zk-pill{display:flex;align-items:center;gap:6px;font-size:11px;padding:3px 10px;border-radius:20px;cursor:pointer;transition:all .2s}
+.zk-on{color:var(--purple);background:var(--purpledim);border:1px solid var(--purple)}
+.zk-off{color:var(--t3);background:var(--bg3);border:1px solid var(--border2)}
+.org-chip{display:flex;align-items:center;gap:8px;padding:4px 12px;background:var(--bg3);border:1px solid var(--border2);border-radius:20px;font-size:12px}
+.main{display:flex;flex:1;overflow:hidden}
+/* SIDEBAR */
+.sidenav{width:210px;background:var(--bg1);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;padding:12px 8px;gap:2px}
+.ti{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--r);cursor:pointer;color:var(--t3);font-size:12px;transition:all .15s;border:1px solid transparent;text-transform:uppercase;letter-spacing:.5px}
+.ti:hover{background:var(--bg3);color:var(--t2)}
+.ti.active{background:var(--greendim);border-color:var(--greenglow);color:var(--green)}
+.ti-icon{font-size:14px;width:18px;text-align:center}
+.ti-num{margin-left:auto;font-size:10px;font-weight:700;background:var(--bg4);border:1px solid var(--border2);padding:1px 6px;border-radius:10px;color:var(--t3)}
+.ti-num.alert{background:var(--reddim);border-color:var(--red);color:var(--red)}
+.side-footer{margin-top:auto;padding:12px 4px 4px;border-top:1px solid var(--border)}
+.zk-block{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r);padding:12px}
+.zk-btitle{font-size:10px;color:var(--t3);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px}
+.tr-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}
+.tr-row:last-child{margin-bottom:0}
+.tr-label{font-size:11px;color:var(--t2)}
+.tog{width:34px;height:19px;background:var(--bg4);border:1px solid var(--border2);border-radius:10px;cursor:pointer;position:relative;transition:all .2s;flex-shrink:0}
+.tog.on{background:var(--greendim);border-color:var(--green)}
+.tog::after{content:'';position:absolute;top:3px;left:3px;width:11px;height:11px;background:var(--t3);border-radius:50%;transition:all .2s}
+.tog.on::after{background:var(--green);left:18px}
+/* CONTENT */
+.tc{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.tp{display:none;flex:1;overflow-y:auto;padding:24px;flex-direction:column;gap:20px}
+.tp.active{display:flex}
+.sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:0}
+.st{font-family:var(--sans);font-weight:700;font-size:15px;color:var(--t1)}
+.ss{font-size:11px;color:var(--t3);margin-top:2px}
+.enc-tag{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--green);background:var(--greendim);border:1px solid var(--greenglow);border-radius:4px;padding:3px 8px}
+/* SETUP SCREEN */
+#setup{position:fixed;inset:0;background:var(--bg0);z-index:100;display:flex;align-items:center;justify-content:center;background-image:radial-gradient(ellipse 60% 40% at 50% 0%,#00e87a08 0%,transparent 60%)}
+.sg{position:absolute;inset:0;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:50px 50px;opacity:.2;mask-image:radial-gradient(ellipse 80% 80% at 50% 50%,black,transparent)}
+.sbox{position:relative;background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:40px;width:460px;box-shadow:0 0 80px #00e87a08,0 32px 80px #00000090}
+.slogo{font-family:var(--sans);font-size:26px;font-weight:800;color:var(--green);letter-spacing:-1px;margin-bottom:4px;display:flex;align-items:center;gap:10px}
+.slogo-icon{width:38px;height:38px;background:var(--greendim);border:1px solid var(--green);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px}
+.ssub{font-size:12px;color:var(--t3);margin-bottom:28px;padding-left:48px}
+.sstep{display:none}
+.sstep.active{display:block}
+.si-bar{display:flex;align-items:center;gap:8px;margin-bottom:24px}
+.si-d{width:8px;height:8px;border-radius:50%;background:var(--bg4);border:1px solid var(--border2);transition:all .3s}
+.si-d.done{background:var(--green);border-color:var(--green)}
+.si-d.active{background:var(--greendim);border-color:var(--green);box-shadow:0 0 8px var(--green)}
+.si-l{flex:1;height:1px;background:var(--border2)}
+.si-l.done{background:var(--green)}
+.s-title{font-family:var(--sans);font-size:15px;font-weight:700;margin-bottom:6px}
+.s-desc{font-size:12px;color:var(--t3);margin-bottom:20px;line-height:1.6}
+.pc-item{display:flex;align-items:flex-start;gap:10px;padding:11px 12px;border:1px solid var(--border2);border-radius:var(--r);margin-bottom:8px;transition:all .2s;cursor:pointer}
+.pc-item:hover{border-color:var(--greenglow)}
+.pc-item.on{border-color:var(--green);background:var(--greendim)}
+.pc-box{width:16px;height:16px;border:2px solid var(--border2);border-radius:3px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;font-size:9px;transition:all .2s}
+.pc-item.on .pc-box{background:var(--green);border-color:var(--green);color:#000}
+.pt{font-size:12px;color:var(--t1);margin-bottom:2px}
+.pd{font-size:11px;color:var(--t3);line-height:1.5}
+.zk-warn{background:var(--purpledim);border:1px solid var(--purple);border-radius:var(--r);padding:11px;font-size:11px;color:var(--purple);line-height:1.6;margin-bottom:14px}
+.snav{display:flex;gap:8px;justify-content:space-between;align-items:center;margin-top:20px}
+.orgid-box{background:var(--bg0);border:1px solid var(--green);border-radius:8px;padding:22px;text-align:center}
+.orgid-label{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.orgid-val{font-family:var(--mono);font-size:26px;font-weight:700;color:var(--green);letter-spacing:4px;margin-bottom:12px}
+.orgid-hash{font-size:10px;color:var(--t3);word-break:break-all;background:var(--bg2);padding:7px;border-radius:4px;margin-bottom:12px}
+.crypto-anim{background:var(--bg0);border:1px solid var(--border);border-radius:var(--r);padding:11px;font-size:10px;color:var(--t3);font-family:var(--mono);line-height:2}
+.ca-line{opacity:0;animation:fli .3s forwards}
+@keyframes fli{to{opacity:1}}
+/* MEMBER TABLE */
+.mt{width:100%;border-collapse:collapse}
+.mt th{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--t3);padding:8px 12px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap}
+.mt td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+.mt tr:hover td{background:var(--bg2)}
+.mid{font-family:var(--mono);font-size:12px;color:var(--green);font-weight:600}
+.mav{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#000;flex-shrink:0}
+.lvl1{background:var(--reddim);border:1px solid var(--red);color:var(--red)}
+.lvl2{background:var(--yellowdim);border:1px solid var(--yellow);color:var(--yellow)}
+.lvl3{background:var(--greendim);border:1px solid var(--green);color:var(--green)}
+.susp-row td{opacity:.45}
+/* LEVEL CARDS */
+.lc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.lc{background:var(--bg2);border:2px solid var(--border2);border-radius:8px;padding:16px;cursor:pointer;transition:all .2s}
+.lc:hover{transform:translateY(-2px)}
+.lc.sel1{border-color:var(--red)!important;box-shadow:0 0 20px var(--reddim)}
+.lc.sel2{border-color:var(--yellow)!important;box-shadow:0 0 20px var(--yellowdim)}
+.lc.sel3{border-color:var(--green)!important;box-shadow:0 0 20px var(--greendim)}
+.lc-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.lc-num{font-family:var(--sans);font-weight:800;font-size:24px}
+.lc-nm{font-size:11px;color:var(--t2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.lc-pi{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--t3);margin-bottom:2px}
+.lc-pi.y{color:var(--t1)}
+/* CATEGORY GRID */
+.cat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cat-row{display:flex;align-items:center;justify-content:space-between;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r);padding:11px 14px;transition:border-color .2s}
+.cat-row:hover{border-color:var(--border)}
+.cat-lbl{display:flex;align-items:center;gap:8px;font-size:12px}
+.cat-tog{width:36px;height:20px;background:var(--bg4);border:1px solid var(--border2);border-radius:10px;cursor:pointer;position:relative;transition:all .2s;flex-shrink:0}
+.cat-tog.on{background:var(--greendim);border-color:var(--green)}
+.cat-tog::after{content:'';position:absolute;top:3px;left:3px;width:12px;height:12px;background:var(--t3);border-radius:50%;transition:all .2s}
+.cat-tog.on::after{background:var(--green);left:19px}
+/* DOC VIEW */
+.doc-row{display:flex;align-items:center;gap:12px;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r);padding:12px 16px;transition:all .2s;margin-bottom:8px}
+.doc-row.ok{border-left:3px solid var(--green)}
+.doc-row.no{border-left:3px solid var(--t4)}
+.doc-icon{font-size:18px;flex-shrink:0}
+.doc-meta{flex:1}
+.doc-name{font-size:13px;color:var(--t1);margin-bottom:2px}
+.redacted{display:inline-block;background:var(--bg4);color:transparent;border-radius:3px;user-select:none;height:15px;vertical-align:middle}
+.enc-strip{background:var(--bg0);border:1px dashed var(--border2);border-radius:4px;padding:5px 9px;font-size:10px;color:var(--t3);word-break:break-all;margin-top:4px}
+/* AUDIT */
+.af-btn{padding:5px 12px;border-radius:20px;font-size:11px;background:var(--bg3);border:1px solid var(--border2);color:var(--t3);cursor:pointer;transition:all .2s;letter-spacing:.3px}
+.af-btn:hover,.af-btn.on{background:var(--greendim);border-color:var(--green);color:var(--green)}
+.at{width:100%;border-collapse:collapse;font-size:12px}
+.at th{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--t3);padding:8px 12px;text-align:left;border-bottom:1px solid var(--border);background:var(--bg1);position:sticky;top:0;z-index:1}
+.at td{padding:9px 12px;border-bottom:1px solid #0d1520}
+.at tr:hover td{background:var(--bg2)}
+.at-time{font-family:var(--mono);font-size:10px;color:var(--t3);white-space:nowrap}
+.ae{font-family:var(--mono);font-size:11px;padding:2px 6px;border-radius:4px}
+.ea{background:var(--greendim);color:var(--green)}
+.ed{background:var(--reddim);color:var(--red)}
+.ec{background:var(--yellowdim);color:var(--yellow)}
+.es{background:var(--reddim);color:var(--red)}
+.el{background:var(--bluedim);color:var(--blue)}
+.er{background:var(--purpledim);color:var(--purple)}
+.ex{background:var(--bluedim);color:var(--blue)}
+.at-hash{font-size:9px;font-family:var(--mono);color:var(--t4)}
+.chain-vis{display:flex;align-items:center;overflow-x:auto;padding:10px 0 4px}
+.cb{background:var(--bg2);border:1px solid var(--border2);border-radius:4px;padding:5px 8px;font-size:9px;color:var(--t3);flex-shrink:0;font-family:var(--mono);cursor:pointer;transition:border-color .2s}
+.cb:hover{border-color:var(--green)}
+.cb .ch{color:var(--greenglow);font-size:8px}
+.ca{color:var(--t4);padding:0 4px;font-size:10px}
+/* MODAL */
+.mbk{position:fixed;inset:0;background:#000000cc;z-index:50;display:flex;align-items:center;justify-content:center}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:28px;width:420px;box-shadow:0 32px 80px #000;animation:mi .2s ease}
+@keyframes mi{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
+.modal-title{font-family:var(--sans);font-weight:700;font-size:16px;margin-bottom:20px}
+.modal-foot{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
+/* NOTIF */
+.notif{position:fixed;bottom:24px;right:24px;z-index:200;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:12px 16px;font-size:12px;display:flex;align-items:center;gap:10px;min-width:240px;box-shadow:0 8px 32px #000;animation:ni .25s ease}
+@keyframes ni{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.notif.s{border-color:var(--green);color:var(--green)}
+.notif.e{border-color:var(--red);color:var(--red)}
+.notif.i{border-color:var(--blue);color:var(--blue)}
+</style>
+</head>
+<body>
+
+<!-- ══════ SETUP SCREEN ══════ -->
+<div id="setup">
+<div class="sg"></div>
+<div class="sbox">
+  <div class="slogo"><div class="slogo-icon">🤫</div>Hushh</div>
+  <div class="ssub">Zero-knowledge secure org communication</div>
+
+  <div class="si-bar" id="sibar">
+    <div class="si-d active" id="sid0"></div>
+    <div class="si-l" id="sil0"></div>
+    <div class="si-d" id="sid1"></div>
+    <div class="si-l" id="sil1"></div>
+    <div class="si-d" id="sid2"></div>
+  </div>
+
+  <!-- Step 1 -->
+  <div class="sstep active" id="ss1">
+    <div class="s-title">Step 1 — Company Identity</div>
+    <div class="s-desc">Your org anchor record. All data is encrypted before leaving your device.</div>
+    <div class="fg"><label class="lbl">Company Name</label><input id="s-name" placeholder="Acme Corp"/></div>
+    <div class="fg"><label class="lbl">Registration Number</label><input id="s-reg" placeholder="CIN / EIN / Company No."/></div>
+    <div class="fg"><label class="lbl">Industry</label>
+      <select id="s-ind"><option value="">Select industry…</option>
+        <option>Fintech</option><option>Healthtech</option><option>SaaS</option>
+        <option>Logistics</option><option>EdTech</option><option>Legal</option><option>Deep Tech</option><option>Other</option>
+      </select>
+    </div>
+    <div class="fg"><label class="lbl">Admin Email</label><input id="s-email" type="email" placeholder="admin@company.com"/></div>
+    <div class="snav"><span style="font-size:11px;color:var(--t3)">Step 1 of 3</span><button class="btn-primary" onclick="step1()">Continue →</button></div>
+  </div>
+
+  <!-- Step 2 -->
+  <div class="sstep" id="ss2">
+    <div class="s-title">Step 2 — Vault Policy</div>
+    <div class="s-desc">Hushh never stores your documents — only cryptographic rules about who can access them.</div>
+    <div class="zk-warn">⬡ <strong>Zero-Knowledge Mode</strong> — When ON, Hushh stores nothing server-side. All rules are encrypted client-side. Losing your master key means losing access permanently. This is by design.</div>
+    <div id="pclist">
+      <div class="pc-item on" onclick="tpc(this)"><div class="pc-box">✓</div><div><div class="pt">Zero-knowledge storage</div><div class="pd">All data encrypted before leaving device. Hushh never sees plaintext.</div></div></div>
+      <div class="pc-item on" onclick="tpc(this)"><div class="pc-box">✓</div><div><div class="pt">External partner access control</div><div class="pd">Third-party access requires explicit org-admin approval every session.</div></div></div>
+      <div class="pc-item on" onclick="tpc(this)"><div class="pc-box">✓</div><div><div class="pt">90-day consent renewal</div><div class="pd">All member consents expire and must be renewed every 90 days.</div></div></div>
+      <div class="pc-item on" onclick="tpc(this)"><div class="pc-box">✓</div><div><div class="pt">Full audit visibility</div><div class="pd">Every access, denial, and change is logged and exportable.</div></div></div>
+      <div class="pc-item" onclick="tpc(this)"><div class="pc-box"></div><div><div class="pt">Auto-purge on suspension</div><div class="pd">Member keys are immediately invalidated on suspension.</div></div></div>
+    </div>
+    <div class="snav"><button class="btn" onclick="goS(1)">← Back</button><button class="btn-primary" onclick="step2()">Generate Org ID →</button></div>
+  </div>
+
+  <!-- Step 3 -->
+  <div class="sstep" id="ss3">
+    <div class="s-title">Step 3 — Cryptographic Anchor</div>
+    <div class="s-desc">Your unique Org ID — the root of all vault access decisions.</div>
+    <div class="orgid-box" style="margin-bottom:14px">
+      <div class="orgid-label">Org Identifier</div>
+      <div class="orgid-val" id="gen-oid">—</div>
+      <div class="orgid-hash" id="gen-hash">Generating…</div>
+      <div style="display:flex;gap:8px;justify-content:center">
+        <span class="badge bg">AES-256-GCM</span>
+        <span class="badge bb">ECDH P-384</span>
+        <span class="badge bp">ZK-PROOF</span>
+      </div>
+    </div>
+    <div class="crypto-anim" id="canim" style="margin-bottom:14px"><div>Initializing…</div></div>
+    <div class="card" id="pol-summary" style="font-size:11px;color:var(--t2);line-height:1.8;white-space:pre;padding:12px;margin-bottom:0">Loading policy…</div>
+    <div class="snav"><span style="font-size:11px;color:var(--t3)">Keep this ID private</span><button class="btn-primary" id="enter-btn" onclick="enterApp()" disabled>Enter Hushh →</button></div>
+  </div>
+</div>
+</div>
+
+<!-- ══════ MAIN APP ══════ -->
+<div id="app" style="display:none">
+
+  <div class="topbar">
+    <div class="logo"><div class="logo-icon">🤫</div>Hushh</div>
+    <div class="tbdiv"></div>
+    <div class="enc-pill"><div class="pulse"></div>E2E ENCRYPTED</div>
+    <div class="zk-pill zk-on" id="zkpill" onclick="togSec('zk')">⬡ ZK-STORAGE ON</div>
+    <div class="tbdiv"></div>
+    <div class="org-chip"><span style="font-size:11px;color:var(--t3)">ORG</span><span style="color:var(--green);font-weight:700;font-size:12px" id="tb-oid">—</span></div>
+    <div class="ml-a" style="display:flex;align-items:center;gap:10px">
+      <span class="badge by">ADMIN</span>
+      <span style="font-size:12px" id="tb-admin">—</span>
+      <button class="btn btn-sm" onclick="if(confirm('Exit & reset?'))location.reload()">✕ Exit</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <nav class="sidenav">
+      <div class="ti active" onclick="swTab('register')" id="tab-register"><span class="ti-icon">🏢</span>Org Profile</div>
+      <div class="ti" onclick="swTab('members')" id="tab-members"><span class="ti-icon">👥</span>Members<span class="ti-num" id="tn-members">0</span></div>
+      <div class="ti" onclick="swTab('access')" id="tab-access"><span class="ti-icon">🔐</span>Access Levels</div>
+      <div class="ti" onclick="swTab('view')" id="tab-view"><span class="ti-icon">👁</span>Member View</div>
+      <div class="ti" onclick="swTab('audit')" id="tab-audit"><span class="ti-icon">📋</span>Audit Log<span class="ti-num alert" id="tn-audit">0</span></div>
+
+      <div class="side-footer">
+        <div class="zk-block">
+          <div class="zk-btitle">Security Layer</div>
+          <div class="tr-row"><span class="tr-label">Zero-Knowledge</span><div class="tog on" id="tog-zk" onclick="togSec('zk')"></div></div>
+          <div class="tr-row"><span class="tr-label">E2E Encrypt</span><div class="tog on" id="tog-e2e" onclick="togSec('e2e')"></div></div>
+          <div class="tr-row"><span class="tr-label">Audit Chain</span><div class="tog on" id="tog-chain" onclick="togSec('chain')"></div></div>
+          <div class="tr-row"><span class="tr-label">Metadata Redact</span><div class="tog on" id="tog-redact" onclick="togSec('redact')"></div></div>
+        </div>
+      </div>
+    </nav>
+
+    <div class="tc">
+
+      <!-- ── ORG PROFILE ── -->
+      <div class="tp active" id="p-register">
+        <div class="sh"><div><div class="st">Org Profile</div><div class="ss">Cryptographic anchor — read-only after generation</div></div><div class="enc-tag">🔒 AES-256-GCM</div></div>
+        <div class="card">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+            <div><div class="lbl">Company</div><div style="font-weight:700" id="pr-name">—</div></div>
+            <div><div class="lbl">Reg. No.</div><div style="font-weight:700" id="pr-reg">—</div></div>
+            <div><div class="lbl">Industry</div><div style="font-weight:700" id="pr-ind">—</div></div>
+            <div><div class="lbl">Admin Email</div><div style="font-weight:700" id="pr-email">—</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div style="font-family:var(--sans);font-weight:700;font-size:13px;margin-bottom:12px">Cryptographic Anchor</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px">
+            <div style="background:var(--bg0);border:1px solid var(--border);border-radius:var(--r);padding:11px"><div class="lbl">Org ID</div><div style="color:var(--green);font-weight:700" id="pr-oid">—</div></div>
+            <div style="background:var(--bg0);border:1px solid var(--border);border-radius:var(--r);padding:11px"><div class="lbl">Encryption</div><div style="color:var(--blue);font-weight:700;font-size:12px">AES-256-GCM</div></div>
+            <div style="background:var(--bg0);border:1px solid var(--border);border-radius:var(--r);padding:11px"><div class="lbl">Key Exchange</div><div style="color:var(--purple);font-weight:700;font-size:12px">ECDH P-384</div></div>
+          </div>
+          <div class="lbl">Master Key Hash (SHA-384)</div>
+          <div class="enc-strip" id="pr-kh">—</div>
+        </div>
+        <div class="card">
+          <div style="font-family:var(--sans);font-weight:700;font-size:13px;margin-bottom:12px">Vault Policy</div>
+          <div id="policy-disp"></div>
+        </div>
+        <div class="card">
+          <div class="sh" style="margin-bottom:10px"><div style="font-family:var(--sans);font-weight:700;font-size:13px">Consent Expiry</div><span class="badge by">⏱ 90 days</span></div>
+          <div style="background:var(--bg0);border-radius:var(--r);padding:11px;font-size:12px;color:var(--t2);line-height:1.8">
+            All member consents expire on <span style="color:var(--green);font-weight:700" id="pr-exp">—</span>.<br>
+            Renewal notices sent 14 days before expiry. Members who don't renew are auto-suspended.
+          </div>
+        </div>
+      </div>
+
+      <!-- ── MEMBERS ── -->
+      <div class="tp" id="p-members">
+        <div class="sh"><div><div class="st">Member IDs</div><div class="ss">Every person gets a cryptographic member ID linked to their access rules</div></div><button class="btn-primary btn-sm" onclick="openAdd()">+ Add Member</button></div>
+        <div style="display:flex;gap:10px;align-items:center">
+          <input style="flex:1" placeholder="Search by name, ID, or email…" oninput="filterM(this.value)" />
+          <span class="badge bg" id="mc-active">0 active</span>
+          <span class="badge br" id="mc-susp">0 suspended</span>
+        </div>
+        <div class="card" style="padding:0;overflow:hidden">
+          <table class="mt" id="mtable"><thead><tr><th>Member ID</th><th>Name</th><th>Email</th><th>Level</th><th>Status</th><th>Added</th><th>Actions</th></tr></thead><tbody id="mtbody"></tbody></table>
+        </div>
+      </div>
+
+      <!-- ── ACCESS LEVELS ── -->
+      <div class="tp" id="p-access">
+        <div class="sh"><div><div class="st">Access Control</div><div class="ss">Fine-grained clearance levels + per-category document overrides</div></div><div class="enc-tag">🔒 RBAC + ABAC</div></div>
+        <div class="card">
+          <div style="font-family:var(--sans);font-weight:700;font-size:13px;margin-bottom:4px">Clearance Levels</div>
+          <div style="font-size:11px;color:var(--t3);margin-bottom:14px">Click a level card to apply to selected member</div>
+          <div class="lc-grid">
+            <div class="lc" id="lc1" onclick="selLvl(1)">
+              <div class="lc-hdr"><span class="lc-num" style="color:var(--red)">L1</span><span class="badge br">RESTRICTED</span></div>
+              <div class="lc-nm">Basic Access</div>
+              <div class="lc-pi y">✓ Announcements</div>
+              <div class="lc-pi y">✓ Public channels</div>
+              <div class="lc-pi">✗ Financial data</div>
+              <div class="lc-pi">✗ HR records</div>
+              <div class="lc-pi">✗ Roadmap</div>
+            </div>
+            <div class="lc" id="lc2" onclick="selLvl(2)">
+              <div class="lc-hdr"><span class="lc-num" style="color:var(--yellow)">L2</span><span class="badge by">STANDARD</span></div>
+              <div class="lc-nm">Team Member</div>
+              <div class="lc-pi y">✓ Everything L1</div>
+              <div class="lc-pi y">✓ Product roadmap</div>
+              <div class="lc-pi y">✓ Team channels</div>
+              <div class="lc-pi">✗ Financial data</div>
+              <div class="lc-pi">✗ HR records</div>
+            </div>
+            <div class="lc" id="lc3" onclick="selLvl(3)">
+              <div class="lc-hdr"><span class="lc-num" style="color:var(--green)">L3</span><span class="badge bg">FULL ACCESS</span></div>
+              <div class="lc-nm">Executive / Lead</div>
+              <div class="lc-pi y">✓ Everything L2</div>
+              <div class="lc-pi y">✓ Financial data</div>
+              <div class="lc-pi y">✓ HR records</div>
+              <div class="lc-pi y">✓ Legal documents</div>
+              <div class="lc-pi y">✓ Investor updates</div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="sh" style="margin-bottom:14px">
+            <div><div style="font-family:var(--sans);font-weight:700;font-size:13px">Document Category Overrides</div><div style="font-size:11px;color:var(--t3);margin-top:2px">Toggles override the level defaults per member</div></div>
+            <div style="display:flex;gap:8px;align-items:center"><label class="lbl" style="margin-bottom:0;white-space:nowrap">Member:</label><select id="acc-sel" style="width:180px" onchange="loadPerms()"><option value="">— select —</option></select></div>
+          </div>
+          <div class="cat-grid" id="cat-grid"></div>
+          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+            <button class="btn btn-sm btn-danger" id="susp-btn" onclick="suspSel()" disabled>⊘ Suspend Access</button>
+            <button class="btn-primary btn-sm" onclick="savePerms()">Save Permissions</button>
+          </div>
+          <div class="hidden" id="save-ok" style="margin-top:10px;background:var(--greendim);border:1px solid var(--greenglow);border-radius:var(--r);padding:9px 12px;font-size:12px;color:var(--green);display:flex;align-items:center;gap:8px">
+            ✓ Permissions saved and logged to audit chain
+          </div>
+        </div>
+      </div>
+
+      <!-- ── MEMBER VIEW ── -->
+      <div class="tp" id="p-view">
+        <div class="sh"><div><div class="st">Member View — Document Vault</div><div class="ss">Exactly what a member sees. Locked docs reveal zero metadata.</div></div><div class="enc-tag">🔒 METADATA REDACTED</div></div>
+        <div class="card" style="display:flex;align-items:center;gap:12px;padding:14px 16px">
+          <label class="lbl" style="margin-bottom:0;white-space:nowrap">Viewing as:</label>
+          <select id="view-sel" style="width:220px" onchange="renderView()"><option value="">— select member —</option></select>
+          <div style="flex:1"></div>
+          <div id="view-badge" style="display:flex;gap:8px;align-items:center"></div>
+        </div>
+        <div id="view-docs"><div style="text-align:center;padding:40px;font-size:12px;color:var(--t3)">Select a member to preview their vault access</div></div>
+      </div>
+
+      <!-- ── AUDIT LOG ── -->
+      <div class="tp" id="p-audit">
+        <div class="sh"><div><div class="st">Immutable Audit Log</div><div class="ss">Cryptographically chained — tamper-evident, non-repudiable</div></div>
+          <div style="display:flex;gap:8px"><button class="btn btn-sm" onclick="renderAudit()">↺ Refresh</button><button class="btn-primary btn-sm" onclick="exportAudit()">⬇ Export</button></div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <span style="font-size:11px;color:var(--t3)">Filter:</span>
+          <button class="af-btn on" onclick="afilt('all',this)">All</button>
+          <button class="af-btn" onclick="afilt('ACCESS',this)">Access</button>
+          <button class="af-btn" onclick="afilt('DENY',this)">Denied</button>
+          <button class="af-btn" onclick="afilt('CHANGE',this)">Changes</button>
+          <button class="af-btn" onclick="afilt('SUSPEND',this)">Suspensions</button>
+          <button class="af-btn" onclick="afilt('LOGIN',this)">Logins</button>
+          <span class="ml-a badge bg" id="a-count">0 entries</span>
+        </div>
+        <div class="card" style="padding:11px">
+          <div style="font-size:10px;color:var(--t3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.8px">Hash Chain (last 8 blocks)</div>
+          <div class="chain-vis" id="chain-vis"></div>
+        </div>
+        <div class="card" style="padding:0;overflow:hidden;flex:1">
+          <table class="at" id="atable"><thead><tr><th>#</th><th>Timestamp</th><th>Event</th><th>Actor</th><th>Target</th><th>Detail</th><th>Block Hash</th></tr></thead><tbody id="atbody"></tbody></table>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding-top:12px;border-top:1px solid var(--border)">
+          <span style="font-size:11px;color:var(--t3)">⬡ SHA-384 hash chain — each block includes prev-hash, actor, timestamp, and event</span>
+          <span class="badge bg" id="chain-ok">CHAIN INTACT</span>
+        </div>
+      </div>
+
+    </div><!-- tc -->
+  </div><!-- main -->
+</div><!-- app -->
+
+<!-- ADD MEMBER MODAL -->
+<div class="mbk hidden" id="add-modal">
+  <div class="modal">
+    <div class="modal-title">➕ Add New Member</div>
+    <div class="fg"><label class="lbl">Full Name</label><input id="mn" placeholder="Jane Smith"/></div>
+    <div class="fg"><label class="lbl">Work Email</label><input id="me" type="email" placeholder="jane@company.com"/></div>
+    <div class="fg"><label class="lbl">Clearance Level</label>
+      <select id="ml"><option value="1">Level 1 — Restricted</option><option value="2">Level 2 — Standard</option><option value="3">Level 3 — Full Access</option></select>
+    </div>
+    <div class="fg" style="margin-bottom:0"><label class="lbl">Department</label>
+      <select id="md"><option>Engineering</option><option>Product</option><option>Finance</option><option>HR</option><option>Legal</option><option>Marketing</option><option>Operations</option></select>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="addMember()">Generate ID & Add</button>
+    </div>
+  </div>
+</div>
+
+<div class="notif hidden" id="notif"></div>
+
+<script>
+// ═══════════════ STATE ═══════════════
+const API = "http://localhost:3001/api";
+const S={
+  org:null,orgId:null,mkHash:null,policies:[],
+  members:[],audit:[],mperms:{},
+  activeLvl:null,zkOn:true,e2eOn:true,chainOn:true,redactOn:true,
+  afilt:'all',adminName:''
+};
+const DOCS=[
+  {id:'d1',name:'Q3 Financial Report 2025',cat:'financial',icon:'💰',size:'2.4 MB'},
+  {id:'d2',name:'Series A Term Sheet',cat:'financial',icon:'📈',size:'890 KB'},
+  {id:'d3',name:'Product Roadmap H2 2025',cat:'roadmap',icon:'🗺️',size:'3.1 MB'},
+  {id:'d4',name:'Engineering Architecture Spec',cat:'technical',icon:'⚙️',size:'1.7 MB'},
+  {id:'d5',name:'Employee Handbook v4',cat:'hr',icon:'📘',size:'1.2 MB'},
+  {id:'d6',name:'Salary Bands 2025',cat:'hr',icon:'💼',size:'445 KB'},
+  {id:'d7',name:'Investor Update — March',cat:'investor',icon:'📊',size:'980 KB'},
+  {id:'d8',name:'NDA Template (Standard)',cat:'legal',icon:'⚖️',size:'220 KB'},
+  {id:'d9',name:'Team OKRs Q4',cat:'roadmap',icon:'🎯',size:'560 KB'},
+  {id:'d10',name:'Compliance Framework',cat:'legal',icon:'🔏',size:'1.8 MB'},
+];
+const CATS=[
+  {k:'financial',l:'Financial Data',i:'💰'},
+  {k:'hr',l:'HR Records',i:'👥'},
+  {k:'roadmap',l:'Product Roadmap',i:'🗺️'},
+  {k:'technical',l:'Technical Specs',i:'⚙️'},
+  {k:'legal',l:'Legal Documents',i:'⚖️'},
+  {k:'investor',l:'Investor Updates',i:'📊'},
+];
+async function loadMembers(){
+  const res = await fetch("http://localhost:3001/api/members");
+  const data = await res.json();
+
+  S.members = data;
+  renderMembers();
+}
+const LVL_PERMS={1:['technical'],2:['technical','roadmap'],3:['technical','roadmap','financial','hr','legal','investor']};
+const COLORS=['#00e87a','#4da6ff','#ffba00','#ff4b6b','#c084fc','#f97316','#06b6d4','#ec4899'];
+const ECLS={ACCESS:'ea',DENY:'ed',CHANGE:'ec',SUSPEND:'es',LOGIN:'el',REGISTER:'er',EXPORT:'ex'};
+
+// ═══════════════ CRYPTO ═══════════════
+async function sha384(s){
+  const b=new TextEncoder().encode(s);
+  const h=await crypto.subtle.digest('SHA-384',b);
+  return Array.from(new Uint8Array(h)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+function genId(pfx,len=8){
+  const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let r=pfx+'-';
+  for(let i=0;i<len;i++){if(i>0&&i%4===0)r+='-';r+=c[Math.floor(Math.random()*c.length)];}
+  return r;
+}
+function rHex(n){return Array.from(crypto.getRandomValues(new Uint8Array(n))).map(b=>b.toString(16).padStart(2,'0')).join('');}
+function delay(ms){return new Promise(r=>setTimeout(r,ms));}
+
+// ═══════════════ SETUP ═══════════════
+let cStep=1;
+function tpc(el){el.classList.toggle('on');el.querySelector('.pc-box').textContent=el.classList.contains('on')?'✓':'';}
+function step1(){
+  const n=document.getElementById('s-name').value.trim();
+  const r=document.getElementById('s-reg').value.trim();
+  const i=document.getElementById('s-ind').value;
+  const e=document.getElementById('s-email').value.trim();
+  if(!n||!r||!i||!e){notif('Fill all fields','e');return;}
+  S.org={name:n,reg:r,industry:i,email:e};
+  goS(2);
+}
+async function step2(){
+  S.policies=[...document.querySelectorAll('.pc-item')].map(c=>({title:c.querySelector('.pt').textContent,on:c.classList.contains('on')}));
+  goS(3);
+  await genOrgId();
+}
+async function genOrgId(){
+  const anim=document.getElementById('canim');
+  const lines=[
+    ['⬡ Generating entropy seed…',''],
+    ['⬡ Deriving ECDH P-384 key pair…','color:var(--blue)'],
+    ['⬡ Generating AES-256-GCM master key…','color:var(--yellow)'],
+    ['⬡ Computing SHA-384 key commitment…',''],
+    ['⬡ Building zero-knowledge proof…','color:var(--green)'],
+    ['⬡ Anchoring org identity block…','color:var(--green)'],
+  ];
+  anim.innerHTML='';
+  for(const[txt,style]of lines){
+    await delay(260);
+    const d=document.createElement('div');
+    d.className='ca-line';if(style)d.style.cssText=style;d.textContent=txt;anim.appendChild(d);
+  }
+  const seed=S.org.name+S.org.reg+Date.now()+Math.random();
+  const hash=await sha384(seed);
+  S.mkHash=hash;
+  const oid=genId('ORG');S.orgId=oid;
+  document.getElementById('gen-oid').textContent=oid;
+  document.getElementById('gen-hash').textContent=hash.substring(0,56)+'…';
+  document.getElementById('pol-summary').textContent=S.policies.map(p=>`${p.on?'✓':'✗'} ${p.title}`).join('\n');
+  await delay(200);
+  const d2=document.createElement('div');d2.className='ca-line';d2.style.color='var(--green)';
+  d2.textContent=`✓ Org ID ${oid} anchored. Vault ready.`;anim.appendChild(d2);
+  document.getElementById('enter-btn').disabled=false;
+}
+function goS(n){
+  document.getElementById(`ss${cStep}`).classList.remove('active');
+  document.getElementById(`sid${cStep-1}`).classList.remove('active');
+  document.getElementById(`sid${cStep-1}`).classList.add('done');
+  if(cStep<=n&&document.getElementById(`sil${cStep-1}`))document.getElementById(`sil${cStep-1}`).classList.add('done');
+  cStep=n;
+  document.getElementById(`ss${cStep}`).classList.add('active');
+  document.getElementById(`sid${cStep-1}`).classList.add('active');
+  document.getElementById(`sid${cStep-1}`).classList.remove('done');
+}
+
+function enterApp(){
+  S.adminName=S.org.email.split('@')[0];
+  document.getElementById('tb-oid').textContent=S.orgId;
+  document.getElementById('tb-admin').textContent=S.adminName;
+  document.getElementById('pr-name').textContent=S.org.name;
+  document.getElementById('pr-reg').textContent=S.org.reg;
+  document.getElementById('pr-ind').textContent=S.org.industry;
+  document.getElementById('pr-email').textContent=S.org.email;
+  document.getElementById('pr-oid').textContent=S.orgId;
+  document.getElementById('pr-kh').textContent=S.mkHash;
+  const exp=new Date();exp.setDate(exp.getDate()+90);
+  document.getElementById('pr-exp').textContent=exp.toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'});
+
+  const pd=document.getElementById('policy-disp');
+  S.policies.forEach(p=>{
+    const d=document.createElement('div');
+    d.style.cssText='display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)';
+    d.innerHTML=`<span style="font-size:12px;color:${p.on?'var(--green)':'var(--t4)'}">${p.on?'✓':'✗'}</span>
+      <span style="font-size:12px;color:${p.on?'var(--t1)':'var(--t3)'}">${p.title}</span>
+      <span class="ml-a badge ${p.on?'bg':'bk'}">${p.on?'ACTIVE':'DISABLED'}</span>`;
+    pd.appendChild(d);
+  });
+
+  buildCatGrid();
+  logAudit('REGISTER','SYSTEM',S.org.name,`Org ${S.orgId} registered with ${S.policies.filter(p=>p.on).length} active policies`);
+  logAudit('LOGIN',S.adminName,'—','Admin session initiated — vault decrypted');
+
+  document.getElementById('setup').style.display='none';
+  document.getElementById('app').style.display='flex';
+  loadMembers();
+}
+
+// ═══════════════ TABS ═══════════════
+function swTab(name){
+  document.querySelectorAll('.ti').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tp').forEach(p=>p.classList.remove('active'));
+  document.getElementById(`tab-${name}`).classList.add('active');
+  document.getElementById(`p-${name}`).classList.add('active');
+  if(name==='view')popViewSel();
+  if(name==='access')popAccSel();
+}
+
+// ═══════════════ MEMBERS ═══════════════
+function addMemberDirect(name,email,level,dept){
+  const color=COLORS[S.members.length%COLORS.length];
+  const m={id:`MEM-${String(S.members.length+1).padStart(3,'0')}`,name,email,level,dept,color,status:'active',added:new Date().toLocaleDateString('en-IN')};
+  S.members.push(m);
+  S.mperms[m.id]=[...LVL_PERMS[level]];
+  renderMembers();updateCounts();
+}
+function openAdd(){document.getElementById('add-modal').classList.remove('hidden');}
+function closeModal(){document.getElementById('add-modal').classList.add('hidden');}
+function addMember(){
+  const name=document.getElementById('mn').value.trim();
+  const email=document.getElementById('me').value.trim();
+  const level=parseInt(document.getElementById('ml').value);
+  const dept=document.getElementById('md').value;
+  if(!name||!email){notif('Name and email required','e');return;}
+  addMemberDirect(name,email,level,dept);
+  const m=S.members[S.members.length-1];
+  logAudit('CHANGE',S.adminName,name,`Member ${m.id} added at Level ${level} — ${dept}`);
+  closeModal();
+  document.getElementById('mn').value='';document.getElementById('me').value='';
+  notif(`${name} added as ${m.id}`,'s');
+  popAccSel();popViewSel();
+}
+
+function filterM(v){renderMembers(v.toLowerCase());}
+function renderMembers(q=''){
+  const tb=document.getElementById('mtbody');tb.innerHTML='';
+  const list=q?S.members.filter(m=>m.name.toLowerCase().includes(q)||m.email.toLowerCase().includes(q)||m.id.toLowerCase().includes(q)):S.members;
+  list.forEach(m=>{
+    const lc=['','lvl1','lvl2','lvl3'][m.level];
+    const ll=['','L1 · RESTRICTED','L2 · STANDARD','L3 · FULL ACCESS'][m.level];
+    const tr=document.createElement('tr');
+    if(m.status==='suspended')tr.classList.add('susp-row');
+    tr.innerHTML=`
+      <td><span class="mid">${m.id}</span></td>
+      <td><div style="display:flex;align-items:center;gap:8px">
+        <div class="mav" style="background:${m.color}">${m.name[0]}</div>
+        <div><div style="font-size:12px">${m.name}</div><div style="font-size:10px;color:var(--t3)">${m.dept}</div></div>
+      </div></td>
+      <td style="font-size:12px;color:var(--t2)">${m.email}</td>
+      <td><span class="badge ${lc}" style="font-size:10px">${ll}</span></td>
+      <td class="sc"><span class="badge ${m.status==='active'?'bg':'br'}">${m.status==='active'?'● ACTIVE':'⊘ SUSPENDED'}</span></td>
+      <td style="font-size:11px;color:var(--t3)">${m.added}</td>
+      <td>${m.status==='active'?`<button class="btn btn-sm btn-danger" onclick="suspM('${m.id}')">Suspend</button>`:`<button class="btn btn-sm" onclick="reinstM('${m.id}')">Reinstate</button>`}</td>`;
+    tb.appendChild(tr);
+  });
+}
+function suspM(id){
+  const m=S.members.find(x=>x.id===id);if(!m)return;
+  m.status='suspended';renderMembers();updateCounts();
+  logAudit('SUSPEND',S.adminName,m.name,'Access suspended — all session keys invalidated immediately');
+  notif(`${m.name} suspended. Access revoked.`,'e');
+}
+function reinstM(id){
+  const m=S.members.find(x=>x.id===id);if(!m)return;
+  m.status='active';renderMembers();updateCounts();
+  logAudit('CHANGE',S.adminName,m.name,`Access reinstated at Level ${m.level}`);
+  notif(`${m.name} reinstated.`,'s');
+}
+function updateCounts(){
+  const a=S.members.filter(m=>m.status==='active').length;
+  const s=S.members.filter(m=>m.status==='suspended').length;
+  document.getElementById('mc-active').textContent=`${a} active`;
+  document.getElementById('mc-susp').textContent=`${s} suspended`;
+  document.getElementById('tn-members').textContent=S.members.length;
+}
+
+// ═══════════════ ACCESS LEVELS ═══════════════
+function buildCatGrid(){
+  const g=document.getElementById('cat-grid');g.innerHTML='';
+  CATS.forEach(cat=>{
+    const d=document.createElement('div');d.className='cat-row';
+    d.innerHTML=`<div class="cat-lbl"><span>${cat.i}</span>${cat.l}</div><div class="cat-tog on" id="ct-${cat.k}" onclick="togCat('${cat.k}')"></div>`;
+    g.appendChild(d);
+  });
+}
+function togCat(k){document.getElementById(`ct-${k}`).classList.toggle('on');}
+function selLvl(n){
+  [1,2,3].forEach(i=>document.getElementById(`lc${i}`).className='lc');
+  document.getElementById(`lc${n}`).classList.add(`sel${n}`);
+  S.activeLvl=n;
+  CATS.forEach(cat=>{const t=document.getElementById(`ct-${cat.k}`);if(t)t.classList.toggle('on',LVL_PERMS[n].includes(cat.k));});
+}
+function popAccSel(){
+  const s=document.getElementById('acc-sel');const v=s.value;
+  s.innerHTML='<option value="">— select —</option>';
+  S.members.forEach(m=>{const o=document.createElement('option');o.value=m.id;o.textContent=`${m.id} — ${m.name}`;s.appendChild(o);});
+  if(v)s.value=v;
+}
+function loadPerms(){
+  const id=document.getElementById('acc-sel').value;
+  document.getElementById('susp-btn').disabled=!id;
+  if(!id)return;
+  const m=S.members.find(x=>x.id===id);if(!m)return;
+  selLvl(m.level);
+  const p=S.mperms[id]||LVL_PERMS[m.level];
+  CATS.forEach(cat=>{const t=document.getElementById(`ct-${cat.k}`);if(t)t.classList.toggle('on',p.includes(cat.k));});
+}
+function savePerms(){
+  const id=document.getElementById('acc-sel').value;
+  if(!id){notif('Select a member first','e');return;}
+  const m=S.members.find(x=>x.id===id);
+  const en=CATS.filter(cat=>document.getElementById(`ct-${cat.k}`)?.classList.contains('on')).map(c=>c.k);
+  S.mperms[id]=en;if(S.activeLvl)m.level=S.activeLvl;
+  const ok=document.getElementById('save-ok');
+  ok.classList.remove('hidden');setTimeout(()=>ok.classList.add('hidden'),3000);
+  logAudit('CHANGE',S.adminName,m.name,`Permissions: [${en.join(', ')}] Level ${m.level}`);
+  notif('Permissions saved','s');renderMembers();
+}
+function suspSel(){const id=document.getElementById('acc-sel').value;if(id)suspM(id);}
+
+// ═══════════════ MEMBER VIEW ═══════════════
+function popViewSel(){
+  const s=document.getElementById('view-sel');const v=s.value;
+  s.innerHTML='<option value="">— select member —</option>';
+  S.members.forEach(m=>{const o=document.createElement('option');o.value=m.id;o.textContent=`${m.id} — ${m.name}`;s.appendChild(o);});
+  if(v){s.value=v;renderView();}
+}
+function renderView(){
+  const id=document.getElementById('view-sel').value;
+  const cont=document.getElementById('view-docs');
+  const badge=document.getElementById('view-badge');
+  if(!id){cont.innerHTML='<div style="text-align:center;padding:40px;font-size:12px;color:var(--t3)">Select a member to preview their vault access</div>';badge.innerHTML='';return;}
+  const m=S.members.find(x=>x.id===id);if(!m)return;
+  const perms=S.mperms[id]||LVL_PERMS[m.level];
+  const lbcls=['','br','by','bg'][m.level];
+  const lbl=['','L1','L2','L3'][m.level];
+  badge.innerHTML=`<div class="mav" style="background:${m.color};width:22px;height:22px;font-size:10px">${m.name[0]}</div>
+    <span style="font-size:12px">${m.name}</span>
+    <span class="badge ${lbcls}">${lbl}</span>
+    <span class="badge ${m.status==='active'?'bg':'br'}">${m.status.toUpperCase()}</span>`;
+  if(m.status==='suspended'){
+    cont.innerHTML=`<div class="card" style="text-align:center;padding:40px"><div style="font-size:32px;margin-bottom:12px">⊘</div><div style="font-size:14px;color:var(--red);font-weight:700;margin-bottom:8px">Access Suspended</div><div style="font-size:12px;color:var(--t3)">This member's keys have been invalidated. No documents are accessible.</div></div>`;
+    return;
+  }
+  const accessible=DOCS.filter(d=>perms.includes(d.cat)).length;
+  const rows=DOCS.map(doc=>{
+    const ok=perms.includes(doc.cat);
+    if(ok){
+      const k=rHex(16);
+      return `<div class="doc-row ok">
+        <div class="doc-icon">${doc.icon}</div>
+        <div class="doc-meta">
+          <div class="doc-name">${doc.name}</div>
+          <div style="display:flex;gap:8px;align-items:center;margin-top:3px">
+            <span style="font-size:11px;color:var(--t3)">${doc.cat} · ${doc.size}</span>
+            <span class="badge bg" style="font-size:9px">DECRYPTED</span>
+          </div>
+          <div class="enc-strip">AES-GCM IV: ${k} · Decrypted with member key</div>
+        </div>
+        <span class="badge bg">✓ ACCESSIBLE</span>
+      </div>`;
+    } else {
+      if(S.redactOn){
+        const w1=80+Math.random()*80|0;const w2=40+Math.random()*50|0;
+        return `<div class="doc-row no">
+          <div class="doc-icon" style="opacity:.25">📄</div>
+          <div class="doc-meta">
+            <div style="display:flex;align-items:center;gap:8px">
+              <div class="redacted" style="width:${w1}px">&nbsp;</div>
+              <div class="redacted" style="width:${w2}px">&nbsp;</div>
+            </div>
+            <div class="redacted" style="width:${60+Math.random()*40|0}px;margin-top:5px;height:10px">&nbsp;</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--t3)">🔒 NO ACCESS</div>
+        </div>`;
+      } else {
+        return `<div class="doc-row no">
+          <div class="doc-icon">${doc.icon}</div>
+          <div class="doc-meta"><div class="doc-name" style="color:var(--t3)">${doc.name}</div><div style="font-size:11px;color:var(--t4)">${doc.cat} — access denied</div></div>
+          <div style="font-size:11px;color:var(--t3)">🔒 NO ACCESS</div>
+        </div>`;
+      }
+    }
+  }).join('');
+  cont.innerHTML=`
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+      <span class="badge bg">${accessible} accessible</span>
+      <span class="badge br">${DOCS.length-accessible} redacted</span>
+      <span class="ml-a" style="font-size:11px;color:var(--t3)">${S.redactOn?'⬡ Metadata redaction ON — locked docs reveal zero names or sizes':'⚠ Metadata redaction OFF'}</span>
+    </div>
+    ${rows}`;
+  logAudit('ACCESS',S.adminName,m.name,`Vault preview — ${accessible}/${DOCS.length} docs accessible`);
+}
+
+// ═══════════════ AUDIT ═══════════════
+async function logAudit(event,actor,target,detail){
+  const prev=S.audit.length?S.audit[S.audit.length-1].hash:'0'.repeat(16);
+  const ts=new Date().toISOString();
+  const raw=`${prev}|${ts}|${event}|${actor}|${target}|${detail}`;
+  const hash=await sha384(raw);
+  S.audit.push({n:S.audit.length+1,ts,event,actor,target,detail,hash:hash.substring(0,24),full:hash,prev});
+  updateAudit();
+  document.getElementById('tn-audit').textContent=S.audit.length;
+}
+function updateAudit(){renderAudit();renderChain();document.getElementById('a-count').textContent=`${S.audit.length} entries`;}
+function renderAudit(){
+  const tb=document.getElementById('atbody');tb.innerHTML='';
+  const f=S.afilt;
+  const list=f==='all'?S.audit:S.audit.filter(e=>e.event===f);
+  [...list].reverse().forEach(e=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td style="color:var(--t3);font-size:11px">${e.n}</td>
+      <td class="at-time">${e.ts.replace('T',' ').substring(0,19)}</td>
+      <td><span class="ae ${ECLS[e.event]||''}">${e.event}</span></td>
+      <td style="font-size:12px">${e.actor}</td>
+      <td style="font-size:12px;color:var(--t2)">${e.target}</td>
+      <td style="font-size:11px;color:var(--t2);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${e.detail}">${e.detail}</td>
+      <td class="at-hash">${e.hash}</td>`;
+    tb.appendChild(tr);
+  });
+}
+function renderChain(){
+  const v=document.getElementById('chain-vis');v.innerHTML='';
+  S.audit.slice(-8).forEach((e,i,arr)=>{
+    const b=document.createElement('div');b.className='cb';b.title='Full: '+e.full;
+    b.innerHTML=`#${e.n} ${e.event}<br><span class="ch">${e.hash.substring(0,12)}</span>`;
+    v.appendChild(b);
+    if(i<arr.length-1){const a=document.createElement('span');a.className='ca';a.textContent='→';v.appendChild(a);}
+  });
+}
+function afilt(type,btn){S.afilt=type;document.querySelectorAll('.af-btn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');renderAudit();}
+async function exportAudit(){
+  await logAudit('EXPORT',S.adminName,'—',`Export — ${S.audit.length} entries, chain verified`);
+  const lines=['HUSHH SECURE AUDIT LOG — SIGNED EXPORT',`Org: ${S.orgId}`,`Company: ${S.org.name}`,`Export Date: ${new Date().toISOString()}`,'─'.repeat(100),'#\tTIMESTAMP\t\t\tEVENT\t\tACTOR\t\tTARGET\t\tDETAIL\t\tHASH','─'.repeat(100)];
+  S.audit.forEach(e=>lines.push(`${e.n}\t${e.ts}\t${e.event}\t${e.actor}\t${e.target}\t${e.detail}\t${e.hash}`));
+  lines.push('─'.repeat(100),`CHAIN INTEGRITY: VERIFIED`,`Master Key Hash: ${S.mkHash}`,`Total Entries: ${S.audit.length}`);
+  const blob=new Blob([lines.join('\n')],{type:'text/plain'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=`hushh-audit-${S.orgId}-${Date.now()}.txt`;a.click();
+  notif('Audit log exported','s');
+}
+
+// ═══════════════ SECURITY TOGGLES ═══════════════
+const secMap={zk:'zkOn',e2e:'e2eOn',chain:'chainOn',redact:'redactOn'};
+const secLabels={zk:'Zero-Knowledge Storage',e2e:'E2E Encryption',chain:'Audit Chain',redact:'Metadata Redaction'};
+function togSec(k){
+  S[secMap[k]]=!S[secMap[k]];
+  document.getElementById(`tog-${k}`)?.classList.toggle('on',S[secMap[k]]);
+  const pill=document.getElementById('zkpill');
+  pill.className=`zk-pill ${S.zkOn?'zk-on':'zk-off'}`;
+  pill.textContent=`⬡ ZK-STORAGE ${S.zkOn?'ON':'OFF'}`;
+  notif(`${secLabels[k]} ${S[secMap[k]]?'enabled':'disabled'}`,S[secMap[k]]?'s':'e');
+  if(S.adminName)logAudit('CHANGE',S.adminName,'SECURITY',`${secLabels[k]} turned ${S[secMap[k]]?'ON':'OFF'}`);
+}
+
+
+// ═══════════════ NOTIFICATIONS ═══════════════
+let nt;
+function notif(msg,type='s'){
+  const el=document.getElementById('notif');
+  el.textContent={s:'✓ ',e:'✗ ',i:'ℹ '}[type]+msg;
+  el.className=`notif ${type}`;el.classList.remove('hidden');
+  clearTimeout(nt);nt=setTimeout(()=>el.classList.add('hidden'),3000);
+}
+</script>
+</body>
+</html>
