@@ -1,3 +1,4 @@
 flask
 uvicorn
 fastapi
+sqlmodel
